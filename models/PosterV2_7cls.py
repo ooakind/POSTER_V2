@@ -113,7 +113,7 @@ class WindowAttentionGlobal(nn.Module):
         self.attn_drop = nn.Dropout(attn_drop)
         self.proj = nn.Linear(dim, dim)
         self.proj_drop = nn.Dropout(proj_drop)
-        trunc_normal_(self.relative_position_bias_table, std=.02)
+        # trunc_normal_(self.relative_position_bias_table, std=.02) #FIXED
         self.softmax = nn.Softmax(dim=-1)
 
     def forward(self, x, q_global):
@@ -247,21 +247,27 @@ class pyramid_trans_expr2(nn.Module):
         self.window_size = window_size
         self.N = [win * win for win in window_size]
         self.face_landback = MobileFaceNet([112, 112], 136)
-        face_landback_checkpoint = torch.load(r'C:\Users\86187\Desktop\posterv2\mixfacial\models\pretrain\mobilefacenet_model_best.pth.tar',
+        face_landback_checkpoint = torch.load(r'/home/hyojinju/POSTER_V2/models/pretrain/mobilefacenet_model_best.pth.tar',
                                               map_location=lambda storage, loc: storage)
         self.face_landback.load_state_dict(face_landback_checkpoint['state_dict'])
+        print("Mobilefacenet OK")
 
         for param in self.face_landback.parameters():
             param.requires_grad = False
+        print("Mobilefacenet OK 2")
 
-        self.VIT = VisionTransformer(depth=2, embed_dim=embed_dim)
+        # self.VIT = VisionTransformer(depth=2, embed_dim=embed_dim)
+        print("VisionTransformer OK")
 
         self.ir_back = Backbone(50, 0.0, 'ir')
-        ir_checkpoint = torch.load(r'C:\Users\86187\Desktop\posterv2\mixfacial\models\pretrain\ir50.pth', map_location=lambda storage, loc: storage)
+        ir_checkpoint = torch.load(r'/home/hyojinju/POSTER_V2/models/pretrain/ir50.pth', map_location=lambda storage, loc: storage)
+        print("irback load OK")
 
         self.ir_back = load_pretrained_weights(self.ir_back, ir_checkpoint)
+        print("irback OK")
 
         self.attn1 = WindowAttentionGlobal(dim=dims[0], num_heads=num_heads[0], window_size=window_size[0])
+        print("layers OK")
         self.attn2 = WindowAttentionGlobal(dim=dims[1], num_heads=num_heads[1], window_size=window_size[1])
         self.attn3 = WindowAttentionGlobal(dim=dims[2], num_heads=num_heads[2], window_size=window_size[2])
         self.window1 = window(window_size=window_size[0], dim=dims[0])
@@ -270,6 +276,7 @@ class pyramid_trans_expr2(nn.Module):
         self.conv1 = nn.Conv2d(in_channels=dims[0], out_channels=dims[0], kernel_size=3, stride=2, padding=1)
         self.conv2 = nn.Conv2d(in_channels=dims[1], out_channels=dims[1], kernel_size=3, stride=2, padding=1)
         self.conv3 = nn.Conv2d(in_channels=dims[2], out_channels=dims[2], kernel_size=3, stride=2, padding=1)
+        print("layers OK")
 
         dpr = [x.item() for x in torch.linspace(0, 0.5, 5)]
         self.ffn1 = feedforward(dim=dims[0], window_size=window_size[0], layer_scale=1e-5, drop_path=dpr[0])
@@ -310,7 +317,8 @@ class pyramid_trans_expr2(nn.Module):
 
         o = torch.cat([o1, o2, o3], dim=1)
 
-        out = self.VIT(o)
+        out = o
+        # out = self.VIT(o)
         return out
 
 def compute_param_flop():

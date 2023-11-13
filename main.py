@@ -53,13 +53,17 @@ def main():
     os.environ["CUDA_VISIBLE_DEVICES"] = args.gpu
     best_acc = 0
     print('Training time: ' + now.strftime("%m-%d %H:%M"))
+    print("Start OK")
 
     # create model
     model = pyramid_trans_expr2(img_size=224, num_classes=7)
+    print("Create model OK")
 
     model = torch.nn.DataParallel(model).cuda()
+    print("cUDA OK")
 
     criterion = torch.nn.CrossEntropyLoss()
+    print("criterion OK")
 
     if args.optimizer == 'adamw':
         base_optimizer = torch.optim.AdamW
@@ -74,6 +78,7 @@ def main():
     scheduler = torch.optim.lr_scheduler.ExponentialLR(optimizer, gamma=0.98)
     recorder = RecorderMeter(args.epochs)
     recorder1 = RecorderMeter1(args.epochs)
+    print("optimizer OK")
 
     if args.resume:
         if os.path.isfile(args.resume):
@@ -90,7 +95,7 @@ def main():
         else:
             print("=> no checkpoint found at '{}'".format(args.resume))
     cudnn.benchmark = True
-
+    print("Load model OK")
     # Data loading code
     traindir = os.path.join(args.data, 'train')
 
@@ -131,6 +136,7 @@ def main():
                                                        shuffle=True,
                                                        num_workers=args.workers,
                                                        pin_memory=True)
+    print("Load train data OK")
 
     test_dataset = datasets.ImageFolder(valdir,
                                         transforms.Compose([transforms.Resize((224, 224)),
@@ -139,6 +145,7 @@ def main():
                                                                                  std=[0.229, 0.224, 0.225]),
                                                             ]))
 
+    print("Load test data OK")
 
     val_loader = torch.utils.data.DataLoader(test_dataset,
                                              batch_size=args.batch_size,
@@ -150,15 +157,20 @@ def main():
         if os.path.isfile(args.evaluate):
             print("=> loading checkpoint '{}'".format(args.evaluate))
             checkpoint = torch.load(args.evaluate)
+            vit_keys = ["module.VIT.cls_token", "module.VIT.pos_embed", "module.VIT.se_block.linear1.weight", "module.VIT.se_block.linear1.bias", "module.VIT.se_block.linear2.weight", "module.VIT.se_block.linear2.bias", "module.VIT.patch_embed.proj.weight", "module.VIT.patch_embed.proj.bias", "module.VIT.head.linear.weight", "module.VIT.head.linear.bias", "module.VIT.eca_block.conv.weight", "module.VIT.CON1.weight", "module.VIT.IRLinear1.weight", "module.VIT.IRLinear1.bias", "module.VIT.IRLinear2.weight", "module.VIT.IRLinear2.bias", "module.VIT.blocks.0.norm1.weight", "module.VIT.blocks.0.norm1.bias", "module.VIT.blocks.0.conv.weight", "module.VIT.blocks.0.conv.bias", "module.VIT.blocks.0.attn.qkv.weight", "module.VIT.blocks.0.attn.qkv.bias", "module.VIT.blocks.0.attn.proj.weight", "module.VIT.blocks.0.attn.proj.bias", "module.VIT.blocks.0.norm2.weight", "module.VIT.blocks.0.norm2.bias", "module.VIT.blocks.0.mlp.fc1.weight", "module.VIT.blocks.0.mlp.fc1.bias", "module.VIT.blocks.0.mlp.fc2.weight", "module.VIT.blocks.0.mlp.fc2.bias", "module.VIT.blocks.1.norm1.weight", "module.VIT.blocks.1.norm1.bias", "module.VIT.blocks.1.conv.weight", "module.VIT.blocks.1.conv.bias", "module.VIT.blocks.1.attn.qkv.weight", "module.VIT.blocks.1.attn.qkv.bias", "module.VIT.blocks.1.attn.proj.weight", "module.VIT.blocks.1.attn.proj.bias", "module.VIT.blocks.1.norm2.weight", "module.VIT.blocks.1.norm2.bias", "module.VIT.blocks.1.mlp.fc1.weight", "module.VIT.blocks.1.mlp.fc1.bias", "module.VIT.blocks.1.mlp.fc2.weight", "module.VIT.blocks.1.mlp.fc2.bias", "module.VIT.norm.weight", "module.VIT.norm.bias"]
+            state_dict = checkpoint['state_dict']
+            for key in vit_keys:
+                state_dict.pop(key, None)
             best_acc = checkpoint['best_acc']
             best_acc = best_acc.to()
             print(f'best_acc:{best_acc}')
-            model.load_state_dict(checkpoint['state_dict'])
+            model.load_state_dict(state_dict)
             print("=> loaded checkpoint '{}' (epoch {})".format(args.evaluate, checkpoint['epoch']))
         else:
             print("=> no checkpoint found at '{}'".format(args.evaluate))
         validate(val_loader, model, criterion, args)
         return
+    print("Eval setting OK")
 
     matrix = None
 

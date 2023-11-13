@@ -548,6 +548,7 @@ class VisionTransformer(nn.Module):
         self.pos_drop = nn.Dropout(p=drop_ratio)
 
         self.se_block = SE_block(input_dim=embed_dim)
+        print("vit load OK")
 
 
         self.patch_embed = embed_layer(img_size=img_size, patch_size=patch_size, in_c=256, embed_dim=768)
@@ -559,6 +560,7 @@ class VisionTransformer(nn.Module):
         self.pos_drop = nn.Dropout(p=drop_ratio)
         # self.IR = IR()
         self.eca_block = eca_block()
+        print("vit params OK")
 
 
         # self.ir_back = Backbone(50, 0.0, 'ir')
@@ -579,6 +581,7 @@ class VisionTransformer(nn.Module):
             for i in range(depth)
         ])
         self.norm = norm_layer(embed_dim)
+        print("vit norm OK")
 
         # Representation layer
         if representation_size and not distilled:
@@ -591,20 +594,25 @@ class VisionTransformer(nn.Module):
         else:
             self.has_logits = False
             self.pre_logits = nn.Identity()
+        print("vit rep OK")
 
         # Classifier head(s)
         # self.head = nn.Linear(self.num_features, num_classes) if num_classes > 0 else nn.Identity()
         self.head_dist = None
         if distilled:
             self.head_dist = nn.Linear(self.embed_dim, self.num_classes) if num_classes > 0 else nn.Identity()
+        print("vit cls OK")
 
         # Weight init
         nn.init.trunc_normal_(self.pos_embed, std=0.02)
+        print("vit weight OK 1")
         if self.dist_token is not None:
             nn.init.trunc_normal_(self.dist_token, std=0.02)
+        print("vit weight OK")
 
         nn.init.trunc_normal_(self.cls_token, std=0.02)
         self.apply(_init_vit_weights)
+        print("vit normal OK")
 
     def forward_features(self, x):
         # [B, C, H, W] -> [B, num_patches, embed_dim]
